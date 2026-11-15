@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Gerenciamento de Estoque</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <!-- Tela de Login (UC01) -->
+    <div id="login-screen" class="login-container">
+        <div class="login-box">
+            <h2>Controle de Estoque</h2>
+            <p class="subtitle">Acesse com suas credenciais</p>
+            <form id="login-form">
+                <input type="email" id="login-email" placeholder="E-mail" required>
+                <input type="password" id="login-senha" placeholder="Senha" required>
+                <button type="submit">Entrar</button>
+            </form>
+            <p id="login-erro" class="erro-msg"></p>
+            <div class="dicas-login">
+                <small><b>Admin:</b> admin@estoque.com | 123456</small><br>
+                <small><b>Estoquista:</b> estoquista@estoque.com | 123456</small><br>
+                <small><b>Gerente:</b> gerente@estoque.com | 123456</small>
+            </div>
+        </div>
+    </div>
+
+    <!-- Aplicação Principal -->
+    <div id="app-screen" class="app-container hidden">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h3>Estoque Web</h3>
+                <span id="user-info"></span>
+            </div>
+            <nav id="menu-nav"></nav>
+            <button id="btn-logout" class="btn-logout">Sair</button>
+        </aside>
+
+        <main class="content">
+            <h1 id="page-title">Bem-vindo</h1>
+            <div id="page-content"></div>
+        </main>
+    </div>
+
+    <script src="/static/app.js"></script>
+</body>
+</html>
