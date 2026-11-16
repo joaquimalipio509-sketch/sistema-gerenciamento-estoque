@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+import os
 import sqlite3
 from functools import wraps
 from datetime import datetime
@@ -496,4 +497,5 @@ def relatorio_saidas():
 
 if __name__ == "__main__":
     init_db()
-    app.run(debug=True)
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port, debug=False)
