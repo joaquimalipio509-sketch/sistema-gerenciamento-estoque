@@ -103,13 +103,16 @@ async function carregarUsuarios() {
         </div>
         <div class="card">
             <table>
-                <thead><tr><th>Nome</th><th>E-mail</th><th>Perfil</th><th>Status</th><th>Ação</th></tr></thead>
+                <thead><tr><th>Nome</th><th>E-mail</th><th>Perfil</th><th>Status</th><th>Ações</th></tr></thead>
                 <tbody>
                     ${lista.map(u => `
                         <tr>
                             <td>${u.nome}</td><td>${u.email}</td><td>${u.perfil}</td>
                             <td>${u.ativo ? "Ativo" : "Inativo"}</td>
-                            <td><button class="btn-sm" onclick="toggleStatus('/api/usuarios/${u.id}/status', carregarUsuarios)">Ativar/Inativar</button></td>
+                            <td>
+                                <button class="btn-sm" onclick="toggleStatus('/api/usuarios/${u.id}/status', carregarUsuarios)">Ativar/Inativar</button>
+                                <button class="btn-sm btn-danger" onclick="deletarRegistro('/api/usuarios/${u.id}', carregarUsuarios, 'Tem certeza que deseja apagar este usuário de vez?')">Apagar de vez</button>
+                            </td>
                         </tr>
                     `).join("")}
                 </tbody>
@@ -150,13 +153,16 @@ async function carregarFornecedores() {
         </div>
         <div class="card">
             <table>
-                <thead><tr><th>Nome</th><th>CNPJ</th><th>Telefone</th><th>Status</th><th>Ação</th></tr></thead>
+                <thead><tr><th>Nome</th><th>CNPJ</th><th>Telefone</th><th>Status</th><th>Ações</th></tr></thead>
                 <tbody>
                     ${lista.map(f => `
                         <tr>
                             <td>${f.nome}</td><td>${f.cnpj}</td><td>${f.telefone}</td>
                             <td>${f.ativo ? "Ativo" : "Inativo"}</td>
-                            <td><button class="btn-sm" onclick="toggleStatus('/api/fornecedores/${f.id}/status', carregarFornecedores)">Ativar/Inativar</button></td>
+                            <td>
+                                <button class="btn-sm" onclick="toggleStatus('/api/fornecedores/${f.id}/status', carregarFornecedores)">Ativar/Inativar</button>
+                                <button class="btn-sm btn-danger" onclick="deletarRegistro('/api/fornecedores/${f.id}', carregarFornecedores, 'Deseja apagar este fornecedor de vez?')">Apagar de vez</button>
+                            </td>
                         </tr>
                     `).join("")}
                 </tbody>
@@ -194,7 +200,18 @@ async function carregarCategoriasUnidades() {
                 <input type="text" id="c-nome" placeholder="Nome da Categoria" required>
                 <button type="submit" class="btn-primary">Adicionar</button>
             </form>
-            <p><b>Cadastradas:</b> ${cats.map(c => c.nome).join(", ") || "Nenhuma"}</p>
+            <h3>Categorias Cadastradas</h3>
+            <table>
+                <thead><tr><th>Nome</th><th>Ação</th></tr></thead>
+                <tbody>
+                    ${cats.map(c => `
+                        <tr>
+                            <td>${c.nome}</td>
+                            <td><button class="btn-sm btn-danger" onclick="deletarRegistro('/api/categorias/${c.id}', carregarCategoriasUnidades, 'Apagar categoria e produtos vinculados?')">Apagar de vez</button></td>
+                        </tr>
+                    `).join("") || "<tr><td colspan='2'>Nenhuma categoria cadastrada</td></tr>"}
+                </tbody>
+            </table>
         </div>
         <div class="card">
             <h3>Nova Unidade de Medida</h3>
@@ -203,7 +220,18 @@ async function carregarCategoriasUnidades() {
                 <input type="text" id="un-sigla" placeholder="Sigla (ex: KG)" required>
                 <button type="submit" class="btn-primary">Adicionar</button>
             </form>
-            <p><b>Cadastradas:</b> ${unis.map(u => `${u.nome} (${u.sigla})`).join(", ") || "Nenhuma"}</p>
+            <h3>Unidades Cadastradas</h3>
+            <table>
+                <thead><tr><th>Nome</th><th>Sigla</th><th>Ação</th></tr></thead>
+                <tbody>
+                    ${unis.map(u => `
+                        <tr>
+                            <td>${u.nome}</td><td>${u.sigla}</td>
+                            <td><button class="btn-sm btn-danger" onclick="deletarRegistro('/api/unidades/${u.id}', carregarCategoriasUnidades, 'Apagar unidade e produtos vinculados?')">Apagar de vez</button></td>
+                        </tr>
+                    `).join("") || "<tr><td colspan='3'>Nenhuma unidade cadastrada</td></tr>"}
+                </tbody>
+            </table>
         </div>
     `;
 
@@ -278,7 +306,7 @@ async function carregarProdutos() {
         </div>
         <div class="card">
             <table>
-                <thead><tr><th>Produto</th><th>Categoria</th><th>Qtd. Disponível</th><th>Mínimo</th><th>Valor Unit.</th></tr></thead>
+                <thead><tr><th>Produto</th><th>Categoria</th><th>Qtd. Disponível</th><th>Mínimo</th><th>Valor Unit.</th><th>Ações</th></tr></thead>
                 <tbody>
                     ${prods.map(p => `
                         <tr>
@@ -286,6 +314,9 @@ async function carregarProdutos() {
                             <td>${p.quantidade} ${p.unidade_sigla}</td>
                             <td>${p.estoque_minimo}</td>
                             <td>R$ ${p.valor_unitario.toFixed(2)}</td>
+                            <td>
+                                <button class="btn-sm btn-danger" onclick="deletarRegistro('/api/produtos/${p.id}', carregarProdutos, 'Deseja apagar este produto de vez?')">Apagar de vez</button>
+                            </td>
                         </tr>
                     `).join("")}
                 </tbody>
@@ -329,14 +360,15 @@ async function carregarLotes() {
         </div>
         <div class="card">
             <table>
-                <thead><tr><th>ID</th><th>Produto</th><th>Fornecedor</th><th>Qtd.</th><th>Status</th><th>Ação</th></tr></thead>
+                <thead><tr><th>ID</th><th>Produto</th><th>Fornecedor</th><th>Qtd.</th><th>Status</th><th>Ações</th></tr></thead>
                 <tbody>
                     ${lotes.map(l => `
                         <tr>
                             <td>#${l.id}</td><td>${l.produto_nome}</td><td>${l.fornecedor_nome}</td>
                             <td>${l.quantidade}</td><td><b>${l.status}</b></td>
                             <td>
-                                ${l.status !== "Arquivado" ? `<button class="btn-sm" onclick="avancarLote(${l.id})">Avançar Etapa</button>` : "Finalizado"}
+                                ${l.status !== "Arquivado" ? `<button class="btn-sm" onclick="avancarLote(${l.id})">Avançar</button>` : ""}
+                                <button class="btn-sm btn-danger" onclick="deletarRegistro('/api/lotes/${l.id}', carregarLotes, 'Deseja apagar este lote de vez?')">Apagar</button>
                             </td>
                         </tr>
                     `).join("")}
@@ -470,4 +502,17 @@ async function carregarRankingSaidas() {
 async function toggleStatus(url, callback) {
     await fetch(url, { method: "PATCH" });
     callback();
+}
+
+async function deletarRegistro(url, callback, mensagem) {
+    if (confirm(mensagem)) {
+        const res = await fetch(url, { method: "DELETE" });
+        const data = await res.json();
+        if (res.ok) {
+            alert(data.mensagem);
+            callback();
+        } else {
+            alert(data.erro || "Erro ao apagar registro.");
+        }
+    }
 }

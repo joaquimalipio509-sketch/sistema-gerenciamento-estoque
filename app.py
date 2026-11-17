@@ -212,6 +212,31 @@ def toggle_usuario(id):
     return jsonify({"mensagem": "Status do usuário atualizado."})
 
 
+@app.route("/api/usuarios/<int:id>", methods=["DELETE"])
+@perfil_required(["Administrador"])
+def deletar_usuario(id):
+    conn = get_db()
+    user = conn.execute("SELECT * FROM usuarios WHERE id = ?", (id,)).fetchone()
+    if not user:
+        conn.close()
+        return jsonify({"erro": "Usuário não encontrado."}), 404
+    
+    if id == session.get("user_id"):
+        conn.close()
+        return jsonify({"erro": "Você não pode apagar sua própria conta ativa."}), 400
+
+    try:
+        conn.execute("DELETE FROM movimentacoes WHERE usuario_id = ?", (id,))
+        conn.execute("DELETE FROM usuarios WHERE id = ?", (id,))
+        conn.commit()
+        return jsonify({"mensagem": "Usuário apagado de vez com sucesso."})
+    except Exception as e:
+        conn.rollback()
+        return jsonify({"erro": f"Erro ao apagar usuário: {str(e)}"}), 400
+    finally:
+        conn.close()
+
+
 # --- UC03: Gerenciar Fornecedores (Administrador) ---
 @app.route("/api/fornecedores", methods=["GET", "POST"])
 @login_required
@@ -250,6 +275,27 @@ def toggle_fornecedor(id):
     return jsonify({"mensagem": "Status do fornecedor atualizado."})
 
 
+@app.route("/api/fornecedores/<int:id>", methods=["DELETE"])
+@perfil_required(["Administrador"])
+def deletar_fornecedor(id):
+    conn = get_db()
+    fornecedor = conn.execute("SELECT * FROM fornecedores WHERE id = ?", (id,)).fetchone()
+    if not fornecedor:
+        conn.close()
+        return jsonify({"erro": "Fornecedor não encontrado."}), 404
+
+    try:
+        conn.execute("DELETE FROM lotes WHERE fornecedor_id = ?", (id,))
+        conn.execute("DELETE FROM fornecedores WHERE id = ?", (id,))
+        conn.commit()
+        return jsonify({"mensagem": "Fornecedor apagado de vez com sucesso."})
+    except Exception as e:
+        conn.rollback()
+        return jsonify({"erro": f"Erro ao apagar fornecedor: {str(e)}"}), 400
+    finally:
+        conn.close()
+
+
 # --- UC04: Gerenciar Categorias e Unidades (Administrador) ---
 @app.route("/api/categorias", methods=["GET", "POST"])
 @login_required
@@ -275,6 +321,34 @@ def categorias():
         conn.close()
 
 
+@app.route("/api/categorias/<int:id>", methods=["DELETE"])
+@perfil_required(["Administrador"])
+def deletar_categoria(id):
+    conn = get_db()
+    cat = conn.execute("SELECT * FROM categorias WHERE id = ?", (id,)).fetchone()
+    if not cat:
+        conn.close()
+        return jsonify({"erro": "Categoria não encontrada."}), 404
+
+    try:
+        # Opcional: apaga produtos vinculados ou bloqueia se houver produtos
+        produtos_vinculados = conn.execute("SELECT id FROM produtos WHERE categoria_id = ?", (id,)).fetchall()
+        for p in produtos_vinculados:
+            pid = p["id"]
+            conn.execute("DELETE FROM movimentacoes WHERE produto_id = ?", (pid,))
+            conn.execute("DELETE FROM lotes WHERE produto_id = ?", (pid,))
+            conn.execute("DELETE FROM produtos WHERE id = ?", (pid,))
+        
+        conn.execute("DELETE FROM categorias WHERE id = ?", (id,))
+        conn.commit()
+        return jsonify({"mensagem": "Categoria e seus produtos associados apagados com sucesso."})
+    except Exception as e:
+        conn.rollback()
+        return jsonify({"erro": f"Erro ao apagar categoria: {str(e)}"}), 400
+    finally:
+        conn.close()
+
+
 @app.route("/api/unidades", methods=["GET", "POST"])
 @login_required
 def unidades():
@@ -295,6 +369,33 @@ def unidades():
         return jsonify({"mensagem": "Unidade cadastrada."}), 201
     except sqlite3.IntegrityError:
         return jsonify({"erro": "Sigla já existe."}), 400
+    finally:
+        conn.close()
+
+
+@app.route("/api/unidades/<int:id>", methods=["DELETE"])
+@perfil_required(["Administrador"])
+def deletar_unidade(id):
+    conn = get_db()
+    uni = conn.execute("SELECT * FROM unidades_medida WHERE id = ?", (id,)).fetchone()
+    if not uni:
+        conn.close()
+        return jsonify({"erro": "Unidade de medida não encontrada."}), 404
+
+    try:
+        produtos_vinculados = conn.execute("SELECT id FROM produtos WHERE unidade_id = ?", (id,)).fetchall()
+        for p in produtos_vinculados:
+            pid = p["id"]
+            conn.execute("DELETE FROM movimentacoes WHERE produto_id = ?", (pid,))
+            conn.execute("DELETE FROM lotes WHERE produto_id = ?", (pid,))
+            conn.execute("DELETE FROM produtos WHERE id = ?", (pid,))
+
+        conn.execute("DELETE FROM unidades_medida WHERE id = ?", (id,))
+        conn.commit()
+        return jsonify({"mensagem": "Unidade de medida apagada com sucesso."})
+    except Exception as e:
+        conn.rollback()
+        return jsonify({"erro": f"Erro ao apagar unidade: {str(e)}"}), 400
     finally:
         conn.close()
 
@@ -327,6 +428,31 @@ def produtos():
     conn.commit()
     conn.close()
     return jsonify({"mensagem": "Produto cadastrado com sucesso."}), 201
+
+
+@app.route("/api/produtos/<int:id>", methods=["DELETE"])
+@login_required
+def deletar_produto(id):
+    if session.get("perfil") != "Estoquista" and session.get("perfil") != "Administrador":
+        return jsonify({"erro": "Acesso negado."}), 403
+
+    conn = get_db()
+    produto = conn.execute("SELECT * FROM produtos WHERE id = ?", (id,)).fetchone()
+    if not produto:
+        conn.close()
+        return jsonify({"erro": "Produto não encontrado."}), 404
+
+    try:
+        conn.execute("DELETE FROM movimentacoes WHERE produto_id = ?", (id,))
+        conn.execute("DELETE FROM lotes WHERE produto_id = ?", (id,))
+        conn.execute("DELETE FROM produtos WHERE id = ?", (id,))
+        conn.commit()
+        return jsonify({"mensagem": "Produto apagado de vez com sucesso."})
+    except Exception as e:
+        conn.rollback()
+        return jsonify({"erro": f"Erro ao apagar produto: {str(e)}"}), 400
+    finally:
+        conn.close()
 
 
 # --- UC06 e UC07: Lotes e Ciclo de Vida (Estoquista) ---
@@ -389,6 +515,26 @@ def atualizar_status_lote(id):
     conn.commit()
     conn.close()
     return jsonify({"mensagem": f"Status atualizado para {proximo_status}."})
+
+
+@app.route("/api/lotes/<int:id>", methods=["DELETE"])
+@perfil_required(["Estoquista"])
+def deletar_lote(id):
+    conn = get_db()
+    lote = conn.execute("SELECT * FROM lotes WHERE id = ?", (id,)).fetchone()
+    if not lote:
+        conn.close()
+        return jsonify({"erro": "Lote não encontrado."}), 404
+
+    try:
+        conn.execute("DELETE FROM lotes WHERE id = ?", (id,))
+        conn.commit()
+        return jsonify({"mensagem": "Lote apagado de vez com sucesso."})
+    except Exception as e:
+        conn.rollback()
+        return jsonify({"erro": f"Erro ao apagar lote: {str(e)}"}), 400
+    finally:
+        conn.close()
 
 
 # --- UC08 e UC09: Saídas e Baixas Manuais (Estoquista) ---
@@ -485,6 +631,7 @@ def relatorio_financeiro():
 def relatorio_saidas():
     conn = get_db()
     rows = conn.execute("""
+        SELECT p.id, p.nome, COALESCE(SUM(m.quantidade), 0) AS total_saidas
         SELECT p.id, p.nome, COALESCE(SUM(m.quantidade), 0) AS total_saidas
         FROM produtos p
         LEFT JOIN movimentacoes m ON p.id = m.produto_id AND m.tipo IN ('SAIDA_VENDA', 'BAIXA_MANUAL')
